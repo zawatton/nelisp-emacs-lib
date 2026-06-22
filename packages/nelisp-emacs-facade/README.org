@@ -1,0 +1,23 @@
+#+TITLE: nelisp-emacs facade package scaffold
+
+* Status
+
+Generated experimental umbrella facade.  Do not edit this copy as the source of truth; edit =src/nelisp-emacs.el= and regenerate.
+
+* Load
+
+#+begin_src emacs-lisp
+(require 'nelisp-emacs)
+#+end_src
+
+* Smoke
+
+Run the package-path consumer smoke target from the repository root:
+
+#+begin_src sh
+make nemacs-library-package-consumer-smoke
+#+end_src
+
+* Scope
+
+This facade depends on the eight generated reusable package groups and remains outside the reusable package count in Doc 27.

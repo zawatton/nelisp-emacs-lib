@@ -1,0 +1,34 @@
+#+TITLE: nelisp-emacs-text-core package scaffold
+
+* Status
+
+Generated experimental scaffold.  Do not edit this copy as the source of truth; edit =src/= and regenerate.
+
+* Load
+
+#+begin_src emacs-lisp
+(require 'emacs-text-core)
+#+end_src
+
+* Metadata
+
+- facade-name: =text-core=
+- owner: =TXT=
+- package-requires: =nelisp-emacs-foundation=
+- member-features: =nelisp-coding,nelisp-regex=
+- lazy-features: =nelisp-coding-jis-tables=
+- host-features: ==
+- vendor-package-features: ==
+- source-counts: eager=3 lazy=1
+
+* Smoke
+
+Run the package-path smoke target from the repository root:
+
+#+begin_src sh
+make nemacs-library-package-path-smoke
+#+end_src
+
+* API Policy
+
+Prefer stable prefixed APIs from the facade contract.  Compatibility globals and builtins helpers remain governed by Doc 26.

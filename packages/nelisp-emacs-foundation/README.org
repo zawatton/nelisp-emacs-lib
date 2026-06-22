@@ -1,0 +1,34 @@
+#+TITLE: nelisp-emacs-foundation package scaffold
+
+* Status
+
+Generated experimental scaffold.  Do not edit this copy as the source of truth; edit =src/= and regenerate.
+
+* Load
+
+#+begin_src emacs-lisp
+(require 'emacs-foundation)
+#+end_src
+
+* Metadata
+
+- facade-name: =foundation=
+- owner: =FND=
+- package-requires: ==
+- member-features: =cl-lib,emacs-backquote,emacs-callproc,emacs-char-table,emacs-cl-macros,emacs-easy-mmode,emacs-edebug-stubs,emacs-error,emacs-eval,emacs-fns,emacs-hash,emacs-list,emacs-numeric,emacs-os-detect,emacs-pcase,emacs-string,emacs-stub,emacs-stub-bulk,emacs-subr-extras,emacs-symbol,emacs-time,emacs-vars,subr-x=
+- lazy-features: ==
+- host-features: ==
+- vendor-package-features: ==
+- source-counts: eager=24 lazy=0
+
+* Smoke
+
+Run the package-path smoke target from the repository root:
+
+#+begin_src sh
+make nemacs-library-package-path-smoke
+#+end_src
+
+* API Policy
+
+Prefer stable prefixed APIs from the facade contract.  Compatibility globals and builtins helpers remain governed by Doc 26.

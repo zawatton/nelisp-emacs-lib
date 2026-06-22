@@ -1,0 +1,34 @@
+#+TITLE: nelisp-emacs-core package scaffold
+
+* Status
+
+Generated experimental scaffold.  Do not edit this copy as the source of truth; edit =src/= and regenerate.
+
+* Load
+
+#+begin_src emacs-lisp
+(require 'emacs-core)
+#+end_src
+
+* Metadata
+
+- facade-name: =core=
+- owner: =CORE=
+- package-requires: =nelisp-emacs-buffer-core,nelisp-emacs-editing,nelisp-emacs-foundation=
+- member-features: =emacs-command-loop,emacs-command-loop-builtins,emacs-faces,emacs-faces-builtins,emacs-frame,emacs-frame-builtins,emacs-help,emacs-info,emacs-keymap,emacs-keymap-builtins,emacs-minibuffer,emacs-minibuffer-builtins,emacs-mode,emacs-mode-builtins,emacs-window,emacs-window-builtins=
+- lazy-features: =emacs-elisp-eval,emacs-elisp-mode,emacs-font-lock,emacs-ielm,emacs-redisplay-core,emacs-syntax-table,emacs-tui-backend,emacs-tui-event,emacs-tui-terminfo,lisp-mode=
+- host-features: =keymap,pp=
+- vendor-package-features: ==
+- source-counts: eager=17 lazy=10
+
+* Smoke
+
+Run the package-path smoke target from the repository root:
+
+#+begin_src sh
+make nemacs-library-package-path-smoke
+#+end_src
+
+* API Policy
+
+Prefer stable prefixed APIs from the facade contract.  Compatibility globals and builtins helpers remain governed by Doc 26.

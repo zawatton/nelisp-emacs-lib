@@ -1,0 +1,22 @@
+#+TITLE: nelisp-emacs app/gui scaffold
+
+* Status
+
+Generated experimental app/frontend scaffold.  Do not edit this copy as the source of truth; edit =src/= and regenerate.
+
+* Scope
+
+This scaffold stages bootstrap policy, app-local utilities, GUI bridge glue, and GTK frontend glue that are not part of the reusable library package count.  It exists so package-path frontend, bridge image, and app utility tests can avoid implicit =src/= fallbacks for known app/frontend files.
+
+* Regenerate
+
+#+begin_src sh
+make nemacs-library-app-scaffold
+#+end_src
+
+* Smoke
+
+#+begin_src sh
+make nemacs-library-package-gui-bridge-smoke
+make nemacs-library-package-gui-bridge-standalone-smoke
+#+end_src
