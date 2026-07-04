@@ -158,10 +158,20 @@ to let-bind in the case body when matched."
           (setq tests (cons t1 tests))
           (setq bindings (append bindings b1)))
         (setq cur (cdr cur)))
-      (cons (cons 'and (let ((rev nil))
-                         (while tests (setq rev (cons (car tests) rev)) (setq tests (cdr tests)))
-                         rev))
-            bindings)))
+      ;; A sibling `(guard EXPR)' (or `(let PAT EXPR)') in the same `and' may
+      ;; reference variables bound by the other sub-patterns, but those bindings
+      ;; were only applied to the case BODY, not to the test — so e.g.
+      ;; `(and n (guard (> n 3)))' tested `(> n 3)' with `n' UNBOUND (an
+      ;; uncatchable void-variable abort on the bare reader).  Evaluate the whole
+      ;; `and' test with the accumulated bindings in scope.  All sub-patterns test
+      ;; the same (side-effect-free) value-form, so re-binding for the test as
+      ;; well as the body is safe; `let*' covers bindings that depend on earlier
+      ;; ones, and order-independence handles a guard written before its binder.
+      (let ((and-test (cons 'and (let ((rev nil))
+                                   (while tests (setq rev (cons (car tests) rev)) (setq tests (cdr tests)))
+                                   rev))))
+        (cons (if bindings (list 'let* bindings and-test) and-test)
+              bindings))))
 
   (defun emacs-pcase--or (patterns value-form)
     "Build (TEST . BINDINGS) for an `or' pattern.  No bindings (= ambiguous)."
@@ -318,6 +328,24 @@ See `emacs-pcase--test' for supported pattern shapes."
                 (list 'when test
                       (cons 'let (cons pattern-bindings body)))
               (cons 'when (cons test body)))))))
+
+;; Doc 16 breadth round 26: pcase-lambda (was void).
+(when (emacs-pcase--install-function-p 'pcase-lambda)
+  (defmacro pcase-lambda (lambda-list &rest body)
+    "A `lambda' whose parameters may be `pcase' patterns, destructured on call.
+Plain-symbol parameters (including &optional / &rest markers) pass through
+unchanged; a cons pattern (e.g. a backquote pattern) is bound via a hidden
+indexed temporary and `pcase-let*'."
+    (let ((params nil) (bindings nil) (i 0))
+      (dolist (pat lambda-list)
+        (if (symbolp pat)
+            (setq params (cons pat params))
+          (let ((sym (make-symbol (format "--pcl-%d--" i))))
+            (setq i (1+ i))
+            (setq params (cons sym params))
+            (setq bindings (cons (list pat sym) bindings)))))
+      (list 'lambda (nreverse params)
+            (cons 'pcase-let* (cons (nreverse bindings) body))))))
 
 (unless (featurep 'pcase) (provide 'pcase))
 
