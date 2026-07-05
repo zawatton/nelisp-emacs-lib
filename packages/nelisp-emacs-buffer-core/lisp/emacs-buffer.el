@@ -513,9 +513,9 @@ when neither carries PROP."
             (e (emacs-buffer--tp-end cell))
             (p (emacs-buffer--tp-plist cell)))
         (cond
-         ((< pos s)
+         ((<= pos s)
           (push (emacs-buffer--tp-cell (+ s length) (+ e length) p) out))
-         ((and (<= s pos) (< pos e))
+         ((and (< s pos) (< pos e))
           (push (emacs-buffer--tp-cell s (+ e length) p) out))
          (t
           (push cell out)))))
@@ -1052,10 +1052,13 @@ reflects every text-content mutation)."
        (t (signal 'wrong-type-argument (list 'string-or-char-p s)))))
     n))
 
-(defun emacs-buffer--insert-read-only-end (pos length)
-  "Return the exclusive read-only check end for insertion at POS."
+(defun emacs-buffer--insert-read-only-start (pos length)
+  "Return the read-only check start for inserting LENGTH chars at POS.
+Insertion before read-only text is allowed, but insertion inside or just
+after read-only text must still signal.  Model that by checking the
+character before POS, matching Emacs' boundary behavior."
   (if (> length 0)
-      (min (1+ pos) (nelisp-ec-point-max))
+      (max (nelisp-ec-point-min) (1- pos))
     pos))
 
 (defun emacs-buffer--insert-around-advice (orig &rest strings)
@@ -1064,9 +1067,10 @@ Checks read-only text and shifts/expands text-property intervals."
   (let* ((b (emacs-buffer--current))
          (pos (nelisp-ec-point))
          (length (emacs-buffer--insert-text-length strings))
-         (check-end (emacs-buffer--insert-read-only-end pos length))
+         (check-start (emacs-buffer--insert-read-only-start pos length))
          (ext (emacs-buffer--ensure-ext b)))
-    (emacs-buffer--barf-if-read-only pos check-end b)
+    (when (< check-start pos)
+      (emacs-buffer--barf-if-read-only check-start pos b))
     (prog1 (apply orig strings)
       (when (> length 0)
         (setf (emacs-buffer--ext-text-props ext)

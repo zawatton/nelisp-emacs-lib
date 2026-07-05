@@ -634,7 +634,7 @@ dynamically)."
         (unless (or (stringp s) (integerp s))
           (signal 'wrong-type-argument (list 'string-or-char-p s)))
         (let ((text (if (integerp s) (string s) s)))
-          (unless (string-empty-p text)
+          (unless (= 0 (length text))
             (let* ((insert-point (nelisp-ec-buffer-point buf))
                  (n-chars (length text))
                  (new-point (+ insert-point n-chars))

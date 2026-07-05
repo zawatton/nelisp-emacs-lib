@@ -101,6 +101,20 @@
       (nelisp-ec-insert "X")
       (should (equal "alpha bXeta gamma" (nelisp-ec-buffer-string))))))
 
+(ert-deftest emacs-read-only-text-property-insert-boundaries-match-emacs ()
+  (emacs-text-property-substrate-test--with-buffer
+      "tp-read-only-boundary" "xyz"
+    (emacs-buffer-put-text-property 1 2 'read-only t b)
+    (nelisp-ec-goto-char 1)
+    (nelisp-ec-insert "a")
+    (should (equal "axyz" (nelisp-ec-buffer-string)))
+    (should-not (emacs-buffer-get-text-property 1 'read-only b))
+    (should (emacs-buffer-get-text-property 2 'read-only b))
+    (let ((before (nelisp-ec-buffer-string)))
+      (nelisp-ec-goto-char 3)
+      (should-error (nelisp-ec-insert "b") :type 'text-read-only)
+      (should (equal before (nelisp-ec-buffer-string))))))
+
 (provide 'emacs-text-property-substrate-test)
 
 ;;; emacs-text-property-substrate-test.el ends here

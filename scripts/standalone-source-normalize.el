@@ -13,7 +13,7 @@
   "Directory for cached normalized top-level source forms.
 When nil, source normalization always reads the source file directly.")
 
-(defconst standalone-source-normalize-cache-version 130
+(defconst standalone-source-normalize-cache-version 135
   "Cache format version for normalized standalone source forms.
 Bump this whenever normalization semantics change so stale cache entries
 self-invalidate; the cache key otherwise only covers the source file's
@@ -127,6 +127,30 @@ callable nil stub silently corrupts downstream semantics.")
   "Top-level defconsts whose large UI data is elided during replay.
 The binding is preserved, but table/list contents are dropped when they are
 not needed for runtime callability coverage.")
+
+(defvar standalone-source-normalize-literal-defconst-values
+  '((org-ts-regexp
+     . "<\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\(?: .*?\\)?\\)>")
+    (org-ts-regexp-both
+     . "[[<]\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\(?: .*?\\)?\\)[]>]")
+    (org-ts-regexp-inactive
+     . "\\[\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\(?: .*?\\)?\\)\\]")
+    (org-element-clock-line-re
+     . "\\(?:^[\t ]*CLOCK:\\(?:[\t ]+\\(?:\\[\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\(?: .*?\\)?\\)\\]\\)\\(?:--\\(?:\\[\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\(?: .*?\\)?\\)\\]\\)[\t ]+=>[\t ]+[[:digit:]]+:[[:digit:]][[:digit:]]\\)?\\|[\t ]+=>[\t ]+[[:digit:]]+:[[:digit:]][[:digit:]]\\)[\t ]*$\\)")
+    (org-element-headline-re . "^\\*+ ")
+    (org-element-drawer-re . "^[\t ]*:\\([_[:word:]-]+\\):[\t ]*$")
+    (org-element-drawer-re-nogroup . "^[\t ]*:[_[:word:]-]+:[\t ]*$")
+    (org-element-planning-keywords-re
+     . "\\(?:\\(?:CLOSED\\|DEADLINE\\|SCHEDULED\\):\\)")
+    (org-element-planning-line-re
+     . "\\(?:^[\t ]*\\(\\(?:\\(?:CLOSED\\|DEADLINE\\|SCHEDULED\\):\\)\\)\\)")
+    (org-element--timestamp-regexp
+     . "[[<]\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\(?: .*?\\)?\\)[]>]\\|\\(?:<[0-9]+-[0-9]+-[0-9]+[^>\n]+?\\+[0-9]+[dwmy]>\\)\\|\\(?:<%%\\(?:([^>\n]+)\\)\\([^\n>]*\\)>\\)")
+    (org-element--timestamp-raw-value-regexp
+     . "\\([<[]\\(%%\\)?.*?\\)[]>]\\(?:--\\([[<]\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\(?: .*?\\)?\\)[]>]\\)\\)?")
+    (org-element--current-element-re
+     . "\\(?:\\(?1:^[ \t]*\\\\begin{[A-Za-z0-9*]+}\\)\\|\\(?2:^[\t ]*:[_[:word:]-]+:[\t ]*$\\)\\|\\(?3:[ \t]*:\\( \\|$\\)\\)\\|\\(?7:^[\t ]*#\\+BEGIN:[\t ]*[[:word:]]\\)\\|\\(?4:[ \t]*#\\+\\)\\(?:BEGIN_\\(?5:[^[:space:]]+\\)\\|\\(?6:CALL:\\)\\|\\(?8:[^[:space:]]+:\\)\\)\\|\\(?9:^\\[fn:\\([-_[:word:]]+\\)\\]\\)\\|\\(?10:[ \t]*-----+[ \t]*$\\)\\|\\(?11:%%(\\)\\)"))
+  "Literal top-level defconst values used during standalone replay.")
 
 (defvar standalone-source-normalize-dropped-defconst-symbols
   '(org-list-end-re
@@ -1588,19 +1612,28 @@ Handles the normal defun body shape with an optional docstring and
          (listp (caddr form))
          (stringp (cadddr form)))
     (list (standalone-source-normalize--defun-form form)))
-   ;; `defconst' marks a variable as constant for tooling and sets its value.
-   ;; Standalone vendor replay only needs the value binding; using `setq'
-   ;; avoids the heavier constant-definition path for large files with many
-   ;; regexp/table constants.
-   ((and (consp form)
-         (eq (car form) 'defconst)
-         (symbolp (cadr form))
-         (consp (cddr form)))
-    (list (list 'progn
-                (list 'setq
-                      (cadr form)
-                      (standalone-source-normalize-form (caddr form)))
-                (list 'quote (cadr form)))))
+  ((and (consp form)
+        (eq (car form) 'defconst)
+        (symbolp (cadr form))
+        (assq (cadr form) standalone-source-normalize-literal-defconst-values))
+   (let ((cell (assq (cadr form)
+                     standalone-source-normalize-literal-defconst-values)))
+     (list (list 'progn
+                 (list 'setq (car cell) (cdr cell))
+                 (list 'quote (car cell))))))
+  ;; `defconst' marks a variable as constant for tooling and sets its value.
+  ;; Standalone vendor replay only needs the value binding; using `setq'
+  ;; avoids the heavier constant-definition path for large files with many
+  ;; regexp/table constants.
+  ((and (consp form)
+        (eq (car form) 'defconst)
+        (symbolp (cadr form))
+        (consp (cddr form)))
+   (list (list 'progn
+               (list 'setq
+                     (cadr form)
+                     (standalone-source-normalize-form (caddr form)))
+               (list 'quote (cadr form)))))
    (t
     (list (standalone-source-normalize-form form)))))
 

@@ -180,6 +180,24 @@
       (should (>= (length properties) 2))
       (should (>= (length timestamps) 1)))))
 
+(ert-deftest org-element-normalized-planning-line-regexp-is-literal ()
+  (require 'standalone-source-normalize)
+  (let* ((forms (standalone-source-normalize-read-forms-from-file
+                 "vendor/emacs-lisp/org/org-element.el"))
+         (literal (cdr (assq 'org-element-planning-line-re
+                             standalone-source-normalize-literal-defconst-values)))
+         (planning (cl-find-if
+                    (lambda (form)
+                      (and (consp form)
+                           (eq (car form) 'progn)
+                           (member
+                            (list 'setq 'org-element-planning-line-re literal)
+                            (cdr form))))
+                    forms)))
+    (should planning)
+    (should (equal (car (last planning))
+                   '(quote org-element-planning-line-re)))))
+
 (ert-deftest org-macro-bootstrap-callables-are-present ()
   (should (featurep 'org-macro))
   (should (boundp 'org-macro-templates))

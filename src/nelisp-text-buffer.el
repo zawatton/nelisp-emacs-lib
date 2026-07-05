@@ -219,10 +219,14 @@ When the gap shrinks below this threshold we reallocate to grow it.")
   (let* ((bytes (nelisp-text-buffer-bytes tb))
          (gap-start (nelisp-text-buffer-gap-start tb))
          (gap-end (nelisp-text-buffer-gap-end tb)))
-    (if (= gap-start gap-end)
-        bytes
+    (cond
+     ((= 0 (nelisp-text-buffer-char-count tb))
+      "")
+     ((= gap-start gap-end)
+      bytes)
+     (t
       (concat (substring bytes 0 gap-start)
-              (substring bytes gap-end)))))
+              (substring bytes gap-end))))))
 
 (defun nelisp-text-buffer--standalone-replace-logical (tb text cursor)
   "Replace TB contents with TEXT and set cursor to CURSOR.
@@ -513,9 +517,15 @@ The cursor advances to the end of the inserted text. Returns TB."
          (> (length str) 0))
     (let* ((text (nelisp-text-buffer--standalone-logical-string tb))
            (cursor (nelisp-text-buffer-cursor-char tb))
-           (new-text (concat (substring text 0 cursor)
-                             str
-                             (substring text cursor))))
+           (n (length text))
+           (new-text (cond
+                      ((= n 0) str)
+                      ((= cursor 0) (concat str text))
+                      ((= cursor n) (concat text str))
+                      (t
+                       (concat (substring text 0 cursor)
+                               str
+                               (substring text cursor))))))
       (nelisp-text-buffer--standalone-replace-logical
        tb new-text (+ cursor (length str)))))
    (t
@@ -628,8 +638,10 @@ POS must be in [0, length]. Returns TB."
   (cond
    ((= start end) "")
    ((nelisp-text-buffer--standalone-p)
-    (substring (nelisp-text-buffer--standalone-logical-string tb)
-               start end))
+    (let ((text (nelisp-text-buffer--standalone-logical-string tb)))
+      (if (and (= start 0) (= end (nelisp-text-buffer-char-count tb)))
+          text
+        (substring text start end))))
    (t
     (let* ((start-byte (nelisp-text-buffer--char-pos-to-byte-pos tb start))
            (end-byte   (nelisp-text-buffer--char-pos-to-byte-pos tb end))
