@@ -265,13 +265,12 @@ TRAILING-NEWLINE controls whether the last line ends with a newline."
 (defun org-table--replace-region (start end text)
   "Replace buffer text from START to END with TEXT."
   (goto-char start)
-  (if (and (fboundp 'nelisp-ec-delete-region)
-           (fboundp 'nelisp-ec-insert))
-      (progn
-        (nelisp-ec-delete-region start end)
-        (nelisp-ec-insert text))
-    (delete-region start end)
-    (insert text)))
+  ;; `delete-region' and `insert' are the public buffer bridge.  The bridge
+  ;; installs their standalone implementations when running under NeLisp and
+  ;; leaves the host primitives in place under Emacs, so this operation must
+  ;; not inspect or call the private `nelisp-ec-*' substrate directly.
+  (delete-region start end)
+  (insert text))
 
 (defun org-table--replace-table (info rows target-row target-column)
   "Replace the current table described by INFO with ROWS.
