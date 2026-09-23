@@ -4115,18 +4115,31 @@ is required."
 (unless (featurep 'help-macro)
   (provide 'help-macro))
 
-;; Phase B5 — coding-string identity stubs.  Standalone NeLisp strings
-;; are UTF-8 already; the bulk-stub no-op (returns nil) breaks JSON-RPC
-;; parsing when callers wrap incoming strings with `decode-coding-string'.
-;; Forward to identity so the round-trip is a no-op.
+;; Phase B5 — UTF-8 coding-string stubs.  Standalone NeLisp strings
+;; already hold UTF-8 bytes, so no byte conversion is needed, but the
+;; result KIND is observable: a decoded string must be multibyte (so
+;; `length' counts characters and JSON encodes characters, not bytes)
+;; and an encoded string must be unibyte (so `aref' yields bytes).  The
+;; former identity stubs left SQLite text unibyte, which reached MCP
+;; clients as double-encoded UTF-8 and was written back as invalid
+;; UTF-8.  This mirrors the reader's own definitions in
+;; nelisp-stdlib-misc.el, which this layer replaces on standalone.
 (when (emacs-stub--install-function-p 'decode-coding-string)
   (defun decode-coding-string (string &optional _coding-system _nocopy &rest _)
-    "Identity stub — return STRING unchanged.  NeLisp strings are UTF-8."
-    string))
+    "Return STRING's UTF-8 bytes as a multibyte string."
+    (if (and (stringp string)
+             (not (multibyte-string-p string))
+             (fboundp 'string-as-multibyte))
+        (string-as-multibyte string)
+      string)))
 (when (emacs-stub--install-function-p 'encode-coding-string)
   (defun encode-coding-string (string &optional _coding-system _nocopy &rest _)
-    "Identity stub — return STRING unchanged."
-    string))
+    "Return multibyte STRING as its unibyte UTF-8 bytes."
+    (if (and (stringp string)
+             (multibyte-string-p string)
+             (fboundp 'string-as-unibyte))
+        (string-as-unibyte string)
+      string)))
 
 ;; T75 (2026-09) — `fboundp' / `macrop' / `commandp' / `indirect-function'
 ;; all incorrectly signal `(wrong-type-argument symbolp nil)' when called on
