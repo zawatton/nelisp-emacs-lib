@@ -2211,10 +2211,32 @@ degrades to 1 (no pow primitive in the standalone reader)."
 ;; speed).  Reader-gated (`rdf') so host Emacs keeps its real `define-inline'.
 ;; Lowering helpers are pure and defined unconditionally (harmless on host,
 ;; and unit-testable there); only the `define-inline' macro is reader-gated.
+(defun emacs-stub--inline-uncomma--unquote-p (form)
+  "Return non-nil if FORM is a reader-level unquote marker `(comma X)'."
+  (and (consp form)
+       (let ((head (car form)))
+         (or (eq head 'comma)
+             (and (symbolp head) (string= (symbol-name head) ","))))))
+
 (defun emacs-stub--inline-uncomma (form)
   "Lower runtime backquote unquotes in FORM: (comma X) -> X, recursively."
   (cond
    ((not (consp form)) form)
+   ;; `#',EXPR' inside `inline-quote' reads as `(function (comma EXPR))'
+   ;; (this runtime's backquote marks `,' as `comma', not a `\,' read
+   ;; syntax character).  Mirror `inline.el's `inline--dont-quote' case for
+   ;; `` `#'(,'\, ,e) '' : for the function-body (non-inlining) path this
+   ;; must lower to the bare EXPR, not `(function EXPR)'.  EXPR (e.g. `(get
+   ;; type 'cl-deftype-satisfies)' in `cl-macs.el's `cl-typep') already
+   ;; evaluates to the function value at call time; `function' does not
+   ;; evaluate a non-lambda argument, so leaving the wrapper in place turns
+   ;; EXPR's own unevaluated *source* into the `funcall' target and signals
+   ;; `invalid-function' (observed via `defclass' -> `cl-check-type' ->
+   ;; `cl-typep' -> `(funcall #'(get type (quote cl-deftype-satisfies)) val)').
+   ((and (eq (car form) 'function)
+         (emacs-stub--inline-uncomma--unquote-p (cadr form))
+         (null (cddr form)))
+    (emacs-stub--inline-lower (cadr (cadr form))))
    ((let ((head (car form)))
       (or (eq head 'comma)
           (and (symbolp head)
