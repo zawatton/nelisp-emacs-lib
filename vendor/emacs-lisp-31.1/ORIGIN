@@ -1,0 +1,12 @@
+GNU Emacs 31.1 lisp/ files, verbatim (not edited).
+
+Origin: /usr/local/share/emacs/31.1/lisp/<path>.el.gz of a GNU Emacs 31.1
+build, decompressed with zcat.  Each file sits at the same path it has under
+lisp/ in the Emacs 31.1 source tree.  SHA256SUMS records the digest of every
+file here (sha256sum format, paths relative to this directory).
+
+Why a second tree: vendor/emacs-lisp is the GNU Emacs 30.1 lisp/ tree and must
+not be edited, but the S2 feature-coverage reference is Emacs 31.1, whose
+files define names 30.1 lacks.  The bootstrap manifest
+(scripts/build-nelisp-bootstrap.el) lists these 31.1 files in place of the
+30.1 ones where they load on the standalone.
